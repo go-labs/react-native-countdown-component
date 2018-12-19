@@ -29,7 +29,7 @@ class CountDown extends React.Component {
   };
 
   state = {
-    until: Math.max(this.props.until, 0),
+    until: this.props.until,
     wentBackgroundAt: null,
   };
 
@@ -43,19 +43,13 @@ class CountDown extends React.Component {
 
   componentWillUnmount() {
     clearInterval(this.timer);
-    this.timer = null;
     AppState.removeEventListener('change', this._handleAppStateChange);
   }
 
   componentWillReceiveProps(nextProps) {
-    if (this.props.until !== nextProps.until) {
-      this.setState({
-        until: Math.max(nextProps.until, 0)
-      });
-      if (!this.timer) {
-        this.timer = setInterval(this.updateTimer, 1000);
-      }
-    }
+    this.setState({
+      until: nextProps.until,
+    });
   }
 
   _handleAppStateChange = currentAppState => {
@@ -80,17 +74,20 @@ class CountDown extends React.Component {
   };
 
   updateTimer = () => {
-    const {until} = this.state;
+    const {until, play} = this.state;
 
     if (until <= 1) {
       clearInterval(this.timer);
-      this.timer = null;
-      this.setState({until: 0});
       if (this.onFinish) {
         this.onFinish();
+        this.setState({until: 0});
+        this.props.updateTime(0);
       }
     } else {
-      this.setState({until: until - 1});
+      if (this.props.play){
+        this.setState({until: until - 1});
+        this.props.updateTime(until - 1);
+      }
     }
   };
 
@@ -117,7 +114,7 @@ class CountDown extends React.Component {
     const {timeTxtColor, size} = this.props;
 
     return (
-      <View style={styles.doubleDigitCont}>
+      <View key={label} style={styles.doubleDigitCont}>
         <View style={styles.timeInnerCont}>
           {this.renderDigit(digits)}
         </View>
@@ -136,7 +133,7 @@ class CountDown extends React.Component {
     const {timeToShow} = this.props;
     const {until} = this.state;
     const {days, hours, minutes, seconds} = this.getTimeLeft();
-    const newTime = sprintf('%02d:%02d:%02d:%02d', days, hours, minutes, seconds).split(':');
+    const newTime = sprintf('%02d-%02d-%02d-%02d', days, hours, minutes, seconds).split('-');
     const Component = this.props.onPress ? TouchableOpacity : View;
 
     return (
@@ -146,7 +143,7 @@ class CountDown extends React.Component {
       >
         {_.includes(timeToShow, 'D') ? this.renderDoubleDigits(this.props['labelD'], newTime[0]) : null}
         {_.includes(timeToShow, 'H') ? this.renderDoubleDigits(this.props['labelH'], newTime[1]) : null}
-        {_.includes(timeToShow, 'M') ? this.renderDoubleDigits(this.props['labelM'], newTime[2]) : null}
+        {_.includes(timeToShow, 'M') ? this.renderDoubleDigits(this.props['labelM'], ":" + newTime[2] + ":") : null}
         {_.includes(timeToShow, 'S') ? this.renderDoubleDigits(this.props['labelS'], newTime[3]) : null}
       </Component>
     );
@@ -177,11 +174,10 @@ CountDown.defaultProps = {
 const styles = StyleSheet.create({
   timeCont: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-around' 
   },
   timeTxt: {
     color: 'white',
-    marginVertical: 2,
     backgroundColor: 'transparent',
   },
   timeInnerCont: {
@@ -191,7 +187,6 @@ const styles = StyleSheet.create({
   },
   digitCont: {
     borderRadius: 5,
-    marginHorizontal: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -201,8 +196,7 @@ const styles = StyleSheet.create({
   },
   digitTxt: {
     color: 'white',
-    fontWeight: 'bold',
-    fontVariant: ['tabular-nums']
+    fontWeight: '600',
   },
 });
 
