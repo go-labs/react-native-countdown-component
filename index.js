@@ -9,7 +9,7 @@ import {
   AppState
 } from 'react-native';
 import _ from 'lodash';
-import {sprintf} from 'sprintf-js';
+import { sprintf } from 'sprintf-js';
 
 const DEFAULT_BG_COLOR = '#FAB913';
 const DEFAULT_TIME_TXT_COLOR = '#000';
@@ -18,24 +18,26 @@ const DEFAULT_TIME_TO_SHOW = ['D', 'H', 'M', 'S'];
 
 class CountDown extends React.Component {
   static propTypes = {
+    time: PropTypes.number,
+    until: PropTypes.number,
+    onFinish: PropTypes.func,
+    size: PropTypes.number,
     digitBgColor: PropTypes.string,
     digitTxtColor: PropTypes.string,
     timeTxtColor: PropTypes.string,
     timeToShow: PropTypes.array,
-    size: PropTypes.number,
-    until: PropTypes.number,
-    onFinish: PropTypes.func,
     onPress: PropTypes.func,
   };
 
   state = {
-    until: this.props.until,
+    time: 0,
+    until: 0,
     wentBackgroundAt: null,
   };
 
   componentDidMount() {
     if (this.props.onFinish) {
-      this.onFinish = _.once(this.props.onFinish);
+      this.onFinish = this.props.onFinish;
     }
     this.timer = setInterval(this.updateTimer, 1000);
     AppState.addEventListener('change', this._handleAppStateChange);
@@ -48,70 +50,66 @@ class CountDown extends React.Component {
 
   componentWillReceiveProps(nextProps) {
     this.setState({
+      time: nextProps.time,
       until: nextProps.until,
     });
   }
 
   _handleAppStateChange = currentAppState => {
-    const {until, wentBackgroundAt} = this.state;
+    const { time, wentBackgroundAt } = this.state;
     if (currentAppState === 'active' && wentBackgroundAt) {
       const diff = (Date.now() - wentBackgroundAt) / 1000.0;
-      this.setState({until: Math.max(0, until - diff)});
+      this.setState({ time: Math.max(0, time - diff) });
     }
     if (currentAppState === 'background') {
-      this.setState({wentBackgroundAt: Date.now()});
+      this.setState({ wentBackgroundAt: Date.now() });
     }
   }
 
   getTimeLeft = () => {
-    const {until} = this.state;
+    const { time } = this.state;
     return {
-      seconds: until % 60,
-      minutes: parseInt(until / 60, 10) % 60,
-      hours: parseInt(until / (60 * 60), 10) % 24,
-      days: parseInt(until / (60 * 60 * 24), 10),
+      seconds: time % 60,
+      minutes: parseInt(time / 60, 10) % 60,
+      hours: parseInt(time / (60 * 60), 10) % 24,
+      days: parseInt(time / (60 * 60 * 24), 10),
     };
   };
 
   updateTimer = () => {
-    const {until, play} = this.state;
-
-    if (until <= 1) {
+    const { time, until } = this.state;
+    if (time >= until) {
       clearInterval(this.timer);
-      if (this.onFinish) {
-        this.onFinish();
-        this.setState({until: 0});
-        this.props.updateTime(0);
-      }
-    } else {
-      if (this.props.play){
-        this.setState({until: until - 1});
-        this.props.updateTime(until - 1);
+      this.onFinish();
+    }else {
+      if (this.props.play) {
+        this.setState({ time: time + 1 });
+        this.props.updateTime(time + 1);
+        return;
       }
     }
   };
 
   renderDigit = (d) => {
-    const {digitBgColor, digitTxtColor, size} = this.props;
+    const { digitBgColor, digitTxtColor, size } = this.props;
     return (
       <View style={[
         styles.digitCont,
-        {backgroundColor: digitBgColor},
-        {width: size * 2.3, height: size * 2.6},
+        { backgroundColor: digitBgColor },
+        { width: size * 2.3, height: size * 2.6 },
       ]}>
         <Text style={[
           styles.digitTxt,
-          {fontSize: size},
-          {color: digitTxtColor}
+          { fontSize: size },
+          { color: digitTxtColor }
         ]}>
           {d}
         </Text>
       </View>
     );
   };
-
   renderDoubleDigits = (label, digits) => {
-    const {timeTxtColor, size} = this.props;
+    const { timeTxtColor, size } = this.props;
 
     return (
       <View key={label} style={styles.doubleDigitCont}>
@@ -120,8 +118,8 @@ class CountDown extends React.Component {
         </View>
         <Text style={[
           styles.timeTxt,
-          {fontSize: size / 1.8},
-          {color: timeTxtColor},
+          { fontSize: size / 1.8 },
+          { color: timeTxtColor },
         ]}>
           {label}
         </Text>
@@ -130,9 +128,9 @@ class CountDown extends React.Component {
   };
 
   renderCountDown = () => {
-    const {timeToShow} = this.props;
-    const {until} = this.state;
-    const {days, hours, minutes, seconds} = this.getTimeLeft();
+    const { timeToShow } = this.props;
+    const { time } = this.state;
+    const { days, hours, minutes, seconds } = this.getTimeLeft();
     const newTime = sprintf('%02d-%02d-%02d-%02d', days, hours, minutes, seconds).split('-');
     const Component = this.props.onPress ? TouchableOpacity : View;
 
@@ -167,14 +165,14 @@ CountDown.defaultProps = {
   labelH: "Hours",
   labelM: "Minutes",
   labelS: "Seconds",
-  until: 0,
+  time: 0,
   size: 15,
 };
 
 const styles = StyleSheet.create({
   timeCont: {
     flexDirection: 'row',
-    justifyContent: 'space-around' 
+    justifyContent: 'space-around'
   },
   timeTxt: {
     color: 'white',
