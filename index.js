@@ -141,7 +141,9 @@ class CountDown extends React.Component {
       >
         {_.includes(timeToShow, 'D') ? this.renderDoubleDigits(this.props['labelD'], newTime[0]) : null}
         {_.includes(timeToShow, 'H') ? this.renderDoubleDigits(this.props['labelH'], newTime[1]) : null}
-        {_.includes(timeToShow, 'M') ? this.renderDoubleDigits(this.props['labelM'], ":" + newTime[2] + ":") : null}
+        {this.renderDoubleDigits(":1", ":")}
+        {_.includes(timeToShow, 'M') ? this.renderDoubleDigits(this.props['labelM'], newTime[2]) : null}
+        {this.renderDoubleDigits(":2", ":")}
         {_.includes(timeToShow, 'S') ? this.renderDoubleDigits(this.props['labelS'], newTime[3]) : null}
       </Component>
     );
